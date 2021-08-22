@@ -1,6 +1,6 @@
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 """
-Copyright (c) 2014-2021,  Regents of the University of California,
+Copyright (c) 2014-2020,  Regents of the University of California,
                           Arizona Board of Regents,
                           Colorado State University,
                           University Pierre & Marie Curie, Sorbonne University,
@@ -26,7 +26,7 @@ NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
 from waflib import Context, Logs, Utils
 import os, subprocess
 
-VERSION = '0.7.1'
+VERSION = '0.7.0'
 APPNAME = 'nfd'
 BUGREPORT = 'https://redmine.named-data.net/projects/nfd'
 URL = 'https://named-data.net/doc/NFD/'
@@ -92,7 +92,6 @@ def configure(conf):
     conf.env.WITH_OTHER_TESTS = conf.options.with_other_tests
 
     conf.find_program('bash', var='BASH')
-    conf.find_program('dot', var='DOT', mandatory=False)
 
     conf.check_cfg(package='libndn-cxx', args=['--cflags', '--libs'], uselib_store='NDN_CXX',
                    pkg_config_path=os.environ.get('PKG_CONFIG_PATH', '%s/pkgconfig' % conf.env.LIBDIR))
@@ -145,7 +144,7 @@ def configure(conf):
     # or conf.define_cond().  Everything that was added directly to conf.env.DEFINES
     # will not appear in the config header, but will instead be passed directly to the
     # compiler on the command line.
-    conf.write_config_header('core/config.hpp', define_prefix='NFD_')
+    conf.write_config_header('core/config.hpp')
 
 def build(bld):
     versionhpp(bld)
@@ -268,7 +267,6 @@ def doxygen(bld):
         target=['docs/doxygen.conf',
                 'docs/named_data_theme/named_data_footer-with-analytics.html'],
         VERSION=VERSION,
-        HAVE_DOT='YES' if bld.env.DOT else 'NO',
         HTML_FOOTER='../build/docs/named_data_theme/named_data_footer-with-analytics.html' \
                         if os.getenv('GOOGLE_ANALYTICS', None) \
                         else '../docs/named_data_theme/named_data_footer.html',

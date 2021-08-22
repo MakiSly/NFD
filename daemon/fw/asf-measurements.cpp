@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -92,21 +92,22 @@ AsfMeasurements::AsfMeasurements(MeasurementsAccessor& measurements)
 }
 
 FaceInfo*
-AsfMeasurements::getFaceInfo(const fib::Entry& fibEntry, const Name& interestName, FaceId faceId)
+AsfMeasurements::getFaceInfo(const fib::Entry& fibEntry, const Interest& interest, FaceId faceId)
 {
-  return getOrCreateNamespaceInfo(fibEntry, interestName).getFaceInfo(faceId);
+  return getOrCreateNamespaceInfo(fibEntry, interest).getFaceInfo(faceId);
 }
 
 FaceInfo&
-AsfMeasurements::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Name& interestName, FaceId faceId)
+AsfMeasurements::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Interest& interest,
+                                     FaceId faceId)
 {
-  return getOrCreateNamespaceInfo(fibEntry, interestName).getOrCreateFaceInfo(faceId);
+  return getOrCreateNamespaceInfo(fibEntry, interest).getOrCreateFaceInfo(faceId);
 }
 
 NamespaceInfo*
 AsfMeasurements::getNamespaceInfo(const Name& prefix)
 {
-  auto* me = m_measurements.findLongestPrefixMatch(prefix);
+  measurements::Entry* me = m_measurements.findLongestPrefixMatch(prefix);
   if (me == nullptr) {
     return nullptr;
   }
@@ -120,16 +121,15 @@ AsfMeasurements::getNamespaceInfo(const Name& prefix)
 }
 
 NamespaceInfo&
-AsfMeasurements::getOrCreateNamespaceInfo(const fib::Entry& fibEntry, const Name& prefix)
+AsfMeasurements::getOrCreateNamespaceInfo(const fib::Entry& fibEntry, const Interest& interest)
 {
-  auto* me = m_measurements.get(fibEntry);
+  measurements::Entry* me = m_measurements.get(fibEntry);
 
   // If the FIB entry is not under the strategy's namespace, find a part of the prefix
   // that falls under the strategy's namespace
   for (size_t prefixLen = fibEntry.getPrefix().size() + 1;
-       me == nullptr && prefixLen <= prefix.size();
-       ++prefixLen) {
-    me = m_measurements.get(prefix.getPrefix(prefixLen));
+       me == nullptr && prefixLen <= interest.getName().size(); ++prefixLen) {
+    me = m_measurements.get(interest.getName().getPrefix(prefixLen));
   }
 
   // Either the FIB entry or the Interest's name must be under this strategy's namespace

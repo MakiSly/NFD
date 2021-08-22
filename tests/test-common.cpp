@@ -25,6 +25,8 @@
 
 #include "tests/test-common.hpp"
 
+#include <ndn-cxx/security/signature-sha256-with-rsa.hpp>
+
 namespace nfd {
 namespace tests {
 
@@ -32,7 +34,7 @@ shared_ptr<Interest>
 makeInterest(const Name& name, bool canBePrefix, optional<time::milliseconds> lifetime,
              optional<Interest::Nonce> nonce)
 {
-  auto interest = std::make_shared<Interest>(name);
+  auto interest = make_shared<Interest>(name);
   interest->setCanBePrefix(canBePrefix);
   if (lifetime) {
     interest->setInterestLifetime(*lifetime);
@@ -44,15 +46,16 @@ makeInterest(const Name& name, bool canBePrefix, optional<time::milliseconds> li
 shared_ptr<Data>
 makeData(const Name& name)
 {
-  auto data = std::make_shared<Data>(name);
+  auto data = make_shared<Data>(name);
   return signData(data);
 }
 
 Data&
 signData(Data& data)
 {
-  data.setSignatureInfo(ndn::SignatureInfo(tlv::NullSignature));
-  data.setSignatureValue(std::make_shared<ndn::Buffer>());
+  ndn::SignatureSha256WithRsa fakeSignature;
+  fakeSignature.setValue(ndn::encoding::makeEmptyBlock(tlv::SignatureValue));
+  data.setSignature(fakeSignature);
   data.wireEncode();
   return data;
 }

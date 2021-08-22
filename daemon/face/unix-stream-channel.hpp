@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -42,7 +42,7 @@ namespace face {
  * Channel can create faces as a response to incoming IPC connections
  * (UnixStreamChannel::listen needs to be called for that to work).
  */
-class UnixStreamChannel final : public Channel
+class UnixStreamChannel : public Channel
 {
 public:
   /**
@@ -66,16 +66,16 @@ public:
    */
   UnixStreamChannel(const unix_stream::Endpoint& endpoint, bool wantCongestionMarking);
 
-  ~UnixStreamChannel() final;
+  ~UnixStreamChannel() override;
 
   bool
-  isListening() const final
+  isListening() const override
   {
     return m_acceptor.is_open();
   }
 
   size_t
-  size() const final
+  size() const override
   {
     return m_size;
   }

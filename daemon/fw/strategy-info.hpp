@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+/**
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -31,7 +31,7 @@
 namespace nfd {
 namespace fw {
 
-/** \brief Contains arbitrary information placed by the forwarding strategy on table entries
+/** \brief contains arbitrary information forwarding strategy places on table entries
  */
 class StrategyInfo
 {
@@ -41,7 +41,10 @@ public:
    *  \sa https://redmine.named-data.net/projects/nfd/wiki/StrategyInfoType
    */
   static constexpr int
-  getTypeId();
+  getTypeId()
+  {
+    return <type-identifier>;
+  }
 #endif
 
   virtual

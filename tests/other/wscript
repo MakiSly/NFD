@@ -37,7 +37,8 @@ def build(bld):
         bld.program(name=module,
                     target='../../%s' % module,
                     source=bld.path.ant_glob('%s*.cpp' % module),
-                    use='daemon-objects other-tests-%s-main' % module,
+                    use='daemon-objects tests-common other-tests-%s-main' % module,
+                    defines=['UNIT_TEST_CONFIG_PATH="%s"' % bld.bldnode.make_node('tmp-files')],
                     install_path=None)
 
     # face-benchmark does not rely on Boost.Test

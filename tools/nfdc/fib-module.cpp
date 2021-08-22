@@ -85,7 +85,7 @@ FibModule::formatStatusText(std::ostream& os) const
 void
 FibModule::formatItemText(std::ostream& os, const FibEntry& item) const
 {
-  os << item.getPrefix() << "\n";
+ os << item.getPrefix() << "\n";
 //" nexthops={";
 
   /*text::Separator sep(", ");

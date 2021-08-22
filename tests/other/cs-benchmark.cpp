@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -26,9 +26,11 @@
 #include "benchmark-helpers.hpp"
 #include "table/cs.hpp"
 
+#include <ndn-cxx/security/signature-sha256-with-rsa.hpp>
+
 #include <iostream>
 
-#ifdef NFD_HAVE_VALGRIND
+#ifdef HAVE_VALGRIND
 #include <valgrind/callgrind.h>
 #endif
 
@@ -50,7 +52,7 @@ protected:
   static time::microseconds
   timedRun(const std::function<void()>& f)
   {
-#ifdef NFD_HAVE_VALGRIND
+#ifdef HAVE_VALGRIND
     CALLGRIND_START_INSTRUMENTATION;
 #endif
 
@@ -58,7 +60,7 @@ protected:
     f();
     auto t2 = time::steady_clock::now();
 
-#ifdef NFD_HAVE_VALGRIND
+#ifdef HAVE_VALGRIND
     CALLGRIND_STOP_INSTRUMENTATION;
 #endif
 
@@ -68,9 +70,10 @@ protected:
   static shared_ptr<Data>
   makeData(const Name& name)
   {
-    auto data = std::make_shared<Data>(name);
-    data->setSignatureInfo(ndn::SignatureInfo(tlv::NullSignature));
-    data->setSignatureValue(std::make_shared<ndn::Buffer>());
+    auto data = make_shared<Data>(name);
+    ndn::SignatureSha256WithRsa fakeSignature;
+    fakeSignature.setValue(ndn::encoding::makeEmptyBlock(tlv::SignatureValue));
+    data->setSignature(fakeSignature);
     data->wireEncode();
     return data;
   }
@@ -78,11 +81,11 @@ protected:
   void
   find(const Interest& interest)
   {
-    cs.find(interest, [] (auto&&...) {}, [] (auto&&...) {});
+    cs.find(interest, bind([]{}), bind([]{}));
   }
 
 protected:
-  using NameGenerator = std::function<Name (size_t)>;
+  typedef std::function<Name(size_t)> NameGenerator;
 
   class SimpleNameGenerator
   {
@@ -112,7 +115,7 @@ protected:
     std::vector<shared_ptr<Interest>> workload(count);
     for (size_t i = 0; i < count; ++i) {
       Name name = genName(i);
-      auto interest = std::make_shared<Interest>(name);
+      auto interest = make_shared<Interest>(name);
       interest->setCanBePrefix(false);
       workload[i] = interest;
     }

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -48,10 +48,10 @@ public:
                  const fib::Entry& fibEntry, const Face& faceUsed);
 
   bool
-  isProbingNeeded(const fib::Entry& fibEntry, const Name& interestName);
+  isProbingNeeded(const fib::Entry& fibEntry, const Interest& interest);
 
   void
-  afterForwardingProbe(const fib::Entry& fibEntry, const Name& interestName);
+  afterForwardingProbe(const fib::Entry& fibEntry, const Interest& interest);
 
   void
   setProbingInterval(size_t probingInterval);

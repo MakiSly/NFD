@@ -25,7 +25,7 @@ if has OSX $NODE_LABELS; then
 
 elif has Ubuntu $NODE_LABELS; then
     sudo apt-get -qq update
-    sudo apt-get -qy install build-essential pkg-config python3-minimal \
+    sudo apt-get -qy install g++ pkg-config python3-minimal \
                              libboost-all-dev libssl-dev libsqlite3-dev \
                              libpcap-dev libsystemd-dev
 
@@ -34,7 +34,7 @@ elif has Ubuntu $NODE_LABELS; then
     fi
 
 elif has CentOS-8 $NODE_LABELS; then
-    sudo dnf config-manager --enable powertools
+    sudo dnf config-manager --enable PowerTools
     sudo dnf -y install gcc-c++ libasan pkgconf-pkg-config python3 \
                         boost-devel openssl-devel sqlite-devel \
                         libpcap-devel systemd-devel

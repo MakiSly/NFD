@@ -1,10 +1,12 @@
 nfd
 ===
 
-Synopsis
---------
+Usage
+-----
 
-**nfd** [**-h**] [**-V**] [**-c** *file*] [**-m**]
+::
+
+    nfd [options]
 
 Description
 -----------

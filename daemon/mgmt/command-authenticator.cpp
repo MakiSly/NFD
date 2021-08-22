@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -65,7 +65,7 @@ getSignerFromTag(const Interest& interest)
 
 /** \brief a validation policy that only permits Interest signed by a trust anchor
  */
-class CommandAuthenticatorValidationPolicy final : public security::ValidationPolicy
+class CommandAuthenticatorValidationPolicy : public security::ValidationPolicy
 {
 public:
   void
@@ -83,12 +83,12 @@ public:
     auto state1 = dynamic_pointer_cast<security::InterestValidationState>(state);
     state1->getOriginalInterest().setTag(make_shared<SignerTag>(klName));
 
-    continueValidation(make_shared<security::CertificateRequest>(klName), state);
+    continueValidation(make_shared<security::CertificateRequest>(Interest(klName)), state);
   }
 
   void
-  checkPolicy(const Data&, const shared_ptr<security::ValidationState>&,
-              const ValidationContinuation&) final
+  checkPolicy(const Data& data, const shared_ptr<security::ValidationState>& state,
+              const ValidationContinuation& continueValidation) final
   {
     // Non-certificate Data are not handled by CommandAuthenticator.
     // Non-anchor certificates cannot be retrieved by offline fetcher.
@@ -107,16 +107,15 @@ CommandAuthenticator::CommandAuthenticator() = default;
 void
 CommandAuthenticator::setConfigFile(ConfigFile& configFile)
 {
-  configFile.addSectionHandler("authorizations", [this] (auto&&... args) {
-    processConfig(std::forward<decltype(args)>(args)...);
-  });
+  configFile.addSectionHandler("authorizations",
+    bind(&CommandAuthenticator::processConfig, this, _1, _2, _3));
 }
 
 void
 CommandAuthenticator::processConfig(const ConfigSection& section, bool isDryRun, const std::string& filename)
 {
   if (!isDryRun) {
-    NFD_LOG_DEBUG("resetting authorizations");
+    NFD_LOG_INFO("clear-authorizations");
     for (auto& kv : m_validators) {
       kv.second = make_shared<security::Validator>(
         make_unique<security::ValidationPolicyCommandInterest>(make_unique<CommandAuthenticatorValidationPolicy>()),
@@ -213,7 +212,6 @@ CommandAuthenticator::makeAuthorization(const std::string& module, const std::st
               const ndn::mgmt::AcceptContinuation& accept,
               const ndn::mgmt::RejectContinuation& reject) {
     auto validator = self->m_validators.at(module);
-
     auto successCb = [accept, validator] (const Interest& interest1) {
       auto signer1 = getSignerFromTag(interest1);
       BOOST_ASSERT(signer1 || // signer must be available unless 'certfile any'
@@ -222,7 +220,6 @@ CommandAuthenticator::makeAuthorization(const std::string& module, const std::st
       NFD_LOG_DEBUG("accept " << interest1.getName() << " signer=" << signer);
       accept(signer);
     };
-
     auto failureCb = [reject] (const Interest& interest1, const security::ValidationError& err) {
       using ndn::mgmt::RejectReply;
       RejectReply reply = RejectReply::STATUS403;

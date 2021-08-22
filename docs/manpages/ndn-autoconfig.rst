@@ -3,10 +3,12 @@
 ndn-autoconfig
 ==============
 
-Synopsis
---------
+Usage
+-----
 
-**ndn-autoconfig** [**-h**] [**-V**] [**-c** *file*] [**-d**]
+::
+
+    ndn-autoconfig [options]
 
 Description
 -----------
@@ -22,11 +24,11 @@ Options
 
   NOTE: if connection to NFD fails, the daemon will be terminated.
 
-``-c FILE`` or ``--config=FILE``
+``-c [FILE]`` or ``--config=[FILE]``
   Use the specified configuration file. If `enabled = true` is not specified in the
   configuration file, no actions will be performed.
 
-``--ndn-fch-url=URL``
+``--ndn-fch-url=[URL]``
   Use the specified URL to find the closest hub (NDN-FCH protocol).  If not specified,
   ``http://ndn-fch.named-data.net/`` will be used.  Only ``http://`` URLs are supported.
 

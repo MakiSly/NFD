@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -29,13 +29,15 @@
 
 namespace nfd {
 
+static const time::milliseconds STATUS_FRESHNESS(5000);
+
 ForwarderStatusManager::ForwarderStatusManager(Forwarder& forwarder, Dispatcher& dispatcher)
   : m_forwarder(forwarder)
   , m_dispatcher(dispatcher)
   , m_startTimestamp(time::system_clock::now())
 {
   m_dispatcher.addStatusDataset("status/general", ndn::mgmt::makeAcceptAllAuthorization(),
-                                std::bind(&ForwarderStatusManager::listGeneralStatus, this, _1, _2, _3));
+                                bind(&ForwarderStatusManager::listGeneralStatus, this, _1, _2, _3));
 }
 
 ndn::nfd::ForwarderStatus
@@ -53,7 +55,7 @@ ForwarderStatusManager::collectGeneralStatus()
   status.setNMeasurementsEntries(m_forwarder.getMeasurements().size());
   status.setNCsEntries(m_forwarder.getCs().size());
 
-  const auto& counters = m_forwarder.getCounters();
+  const ForwarderCounters& counters = m_forwarder.getCounters();
   status.setNInInterests(counters.nInInterests)
         .setNOutInterests(counters.nOutInterests)
         .setNInData(counters.nInData)
@@ -67,11 +69,13 @@ ForwarderStatusManager::collectGeneralStatus()
 }
 
 void
-ForwarderStatusManager::listGeneralStatus(const Name&, const Interest&,
+ForwarderStatusManager::listGeneralStatus(const Name& topPrefix, const Interest& interest,
                                           ndn::mgmt::StatusDatasetContext& context)
 {
+  context.setExpiry(STATUS_FRESHNESS);
+
   auto status = this->collectGeneralStatus();
-  const auto& wire = status.wireEncode();
+  const Block& wire = status.wireEncode();
   wire.parse();
   for (const auto& subblock : wire.elements()) {
     context.append(subblock);

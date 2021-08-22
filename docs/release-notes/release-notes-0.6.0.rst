@@ -91,8 +91,8 @@ Bugfixes
 
 - Fix potential misaligned memory accesses (:issue:`4191`)
 
-Removals
-^^^^^^^^
+Deletions
+^^^^^^^^^
 
 - Deprecated code, including ``faces/enable-local-control`` and ``faces/disable-local-control``
   management commands (:issue:`3988`)

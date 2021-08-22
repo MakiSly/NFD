@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -136,7 +136,7 @@ Strategy::makeInstanceName(const Name& input, const Name& strategyName)
   BOOST_ASSERT(strategyName.at(-1).isVersion());
 
   bool hasVersion = std::any_of(input.rbegin(), input.rend(),
-                                [] (const auto& comp) { return comp.isVersion(); });
+                                [] (const name::Component& comp) { return comp.isVersion(); });
   return hasVersion ? input : Name(input).append(strategyName.at(-1));
 }
 
@@ -151,45 +151,58 @@ Strategy::Strategy(Forwarder& forwarder)
 Strategy::~Strategy() = default;
 
 void
-Strategy::afterContentStoreHit(const Data& data, const FaceEndpoint& ingress,
-                               const shared_ptr<pit::Entry>& pitEntry)
-{
-  NFD_LOG_DEBUG("afterContentStoreHit pitEntry=" << pitEntry->getName()
-                << " in=" << ingress << " data=" << data.getName());
-
-  this->sendData(data, ingress.face, pitEntry);
-}
-
-void
-Strategy::beforeSatisfyInterest(const Data& data, const FaceEndpoint& ingress,
-                                const shared_ptr<pit::Entry>& pitEntry)
+Strategy::beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
+                                const FaceEndpoint& ingress, const Data& data)
 {
   NFD_LOG_DEBUG("beforeSatisfyInterest pitEntry=" << pitEntry->getName()
                 << " in=" << ingress << " data=" << data.getName());
 }
 
 void
-Strategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
-                           const shared_ptr<pit::Entry>& pitEntry)
+Strategy::afterContentStoreHit(const shared_ptr<pit::Entry>& pitEntry,
+                               const FaceEndpoint& ingress, const Data& data)
+{
+  NFD_LOG_DEBUG("afterContentStoreHit pitEntry=" << pitEntry->getName()
+                << " in=" << ingress << " data=" << data.getName());
+
+  this->sendData(pitEntry, data, ingress.face);
+}
+
+void
+Strategy::afterReceiveData(const shared_ptr<pit::Entry>& pitEntry,
+                           const FaceEndpoint& ingress, const Data& data)
 {
   NFD_LOG_DEBUG("afterReceiveData pitEntry=" << pitEntry->getName()
                 << " in=" << ingress << " data=" << data.getName());
 
-  this->beforeSatisfyInterest(data, ingress, pitEntry);
-  this->sendDataToAll(data, pitEntry, ingress.face);
+  this->beforeSatisfyInterest(pitEntry, ingress, data);
+
+  this->sendDataToAll(pitEntry, ingress.face, data);
 }
 
 void
-Strategy::afterReceiveNack(const lp::Nack&, const FaceEndpoint& ingress,
+Strategy::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack&,
                            const shared_ptr<pit::Entry>& pitEntry)
 {
   NFD_LOG_DEBUG("afterReceiveNack in=" << ingress << " pitEntry=" << pitEntry->getName());
 }
 
 void
-Strategy::onDroppedInterest(const Interest& interest, Face& egress)
+Strategy::onDroppedInterest(const Face& egress, const Interest& interest)
 {
   NFD_LOG_DEBUG("onDroppedInterest out=" << egress.getId() << " name=" << interest.getName());
+}
+
+void
+Strategy::sendInterest(const shared_ptr<pit::Entry>& pitEntry, Face& egress, const Interest& interest)
+{
+  if (interest.getTag<lp::PitToken>() != nullptr) {
+    Interest interest2 = interest; // make a copy to preserve tag on original packet
+    interest2.removeTag<lp::PitToken>();
+    m_forwarder.onOutgoingInterest(pitEntry, egress, interest2);
+    return;
+  }
+  m_forwarder.onOutgoingInterest(pitEntry, egress, interest);
 }
 
 void
@@ -199,19 +212,8 @@ Strategy::afterNewNextHop(const fib::NextHop& nextHop, const shared_ptr<pit::Ent
                 << " nexthop=" << nextHop.getFace().getId());
 }
 
-pit::OutRecord*
-Strategy::sendInterest(const Interest& interest, Face& egress, const shared_ptr<pit::Entry>& pitEntry)
-{
-  if (interest.getTag<lp::PitToken>() != nullptr) {
-    Interest interest2 = interest; // make a copy to preserve tag on original packet
-    interest2.removeTag<lp::PitToken>();
-    return m_forwarder.onOutgoingInterest(interest2, egress, pitEntry);
-  }
-  return m_forwarder.onOutgoingInterest(interest, egress, pitEntry);
-}
-
-bool
-Strategy::sendData(const Data& data, Face& egress, const shared_ptr<pit::Entry>& pitEntry)
+void
+Strategy::sendData(const shared_ptr<pit::Entry>& pitEntry, const Data& data, Face& egress)
 {
   BOOST_ASSERT(pitEntry->getInterest().matchesData(data));
 
@@ -228,19 +230,21 @@ Strategy::sendData(const Data& data, Face& egress, const shared_ptr<pit::Entry>&
   if (pitToken != nullptr) {
     Data data2 = data; // make a copy so each downstream can get a different PIT token
     data2.setTag(pitToken);
-    return m_forwarder.onOutgoingData(data2, egress);
+    m_forwarder.onOutgoingData(data2, egress);
+    return;
   }
-  return m_forwarder.onOutgoingData(data, egress);
+  m_forwarder.onOutgoingData(data, egress);
 }
 
 void
-Strategy::sendDataToAll(const Data& data, const shared_ptr<pit::Entry>& pitEntry, const Face& inFace)
+Strategy::sendDataToAll(const shared_ptr<pit::Entry>& pitEntry,
+                        const Face& inFace, const Data& data)
 {
   std::set<Face*> pendingDownstreams;
   auto now = time::steady_clock::now();
 
   // remember pending downstreams
-  for (const auto& inRecord : pitEntry->getInRecords()) {
+  for (const pit::InRecord& inRecord : pitEntry->getInRecords()) {
     if (inRecord.getExpiry() > now) {
       if (inRecord.getFace().getId() == inFace.getId() &&
           inRecord.getFace().getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) {
@@ -251,28 +255,27 @@ Strategy::sendDataToAll(const Data& data, const shared_ptr<pit::Entry>& pitEntry
   }
 
   for (const auto& pendingDownstream : pendingDownstreams) {
-    this->sendData(data, *pendingDownstream, pitEntry);
+    this->sendData(pitEntry, data, *pendingDownstream);
   }
 }
 
 void
-Strategy::sendNacks(const lp::NackHeader& header, const shared_ptr<pit::Entry>& pitEntry,
+Strategy::sendNacks(const shared_ptr<pit::Entry>& pitEntry, const lp::NackHeader& header,
                     std::initializer_list<const Face*> exceptFaces)
 {
   // populate downstreams with all downstreams faces
   std::unordered_set<Face*> downstreams;
-  std::transform(pitEntry->in_begin(), pitEntry->in_end(),
-                 std::inserter(downstreams, downstreams.end()),
-                 [] (const auto& inR) { return &inR.getFace(); });
+  std::transform(pitEntry->in_begin(), pitEntry->in_end(), std::inserter(downstreams, downstreams.end()),
+                 [] (const pit::InRecord& inR) { return &inR.getFace(); });
 
-  // remove excluded faces
+  // delete excluded faces
   for (auto exceptFace : exceptFaces) {
     downstreams.erase(const_cast<Face*>(exceptFace));
   }
 
   // send Nacks
   for (auto downstream : downstreams) {
-    this->sendNack(header, *downstream, pitEntry);
+    this->sendNack(pitEntry, *downstream, header);
   }
   // warning: don't loop on pitEntry->getInRecords(), because in-record is deleted when sending Nack
 }
@@ -291,13 +294,13 @@ Strategy::lookupFib(const pit::Entry& pitEntry) const
     return fibEntry;
   }
 
-  const auto& fh = interest.getForwardingHint();
+  const DelegationList& fh = interest.getForwardingHint();
   // Forwarding hint should have been stripped by incoming Interest pipeline when reaching producer region
   BOOST_ASSERT(!m_forwarder.getNetworkRegionTable().isInProducerRegion(fh));
 
   const fib::Entry* fibEntry = nullptr;
-  for (const auto& delegation : fh) {
-    fibEntry = &fib.findLongestPrefixMatch(delegation.name);
+  for (const Delegation& del : fh) {
+    fibEntry = &fib.findLongestPrefixMatch(del.name);
     if (fibEntry->hasNextHops()) {
       if (fibEntry->getPrefix().size() == 0) {
         // in consumer region, return the default route
@@ -305,7 +308,7 @@ Strategy::lookupFib(const pit::Entry& pitEntry) const
       }
       else {
         // in default-free zone, use the first delegation that finds a FIB entry
-        NFD_LOG_TRACE("lookupFib delegation=" << delegation.name << " found=" << fibEntry->getPrefix());
+        NFD_LOG_TRACE("lookupFib delegation=" << del.name << " found=" << fibEntry->getPrefix());
       }
       return *fibEntry;
     }

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2017,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -27,7 +27,6 @@
 #define NFD_TOOLS_NDN_AUTOCONFIG_PROCEDURE_HPP
 
 #include "stage.hpp"
-
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/mgmt/nfd/controller.hpp>
 #include <ndn-cxx/security/key-chain.hpp>
@@ -64,7 +63,7 @@ public:
   }
 
 private:
-  NFD_VIRTUAL_WITH_TESTS void
+  VIRTUAL_WITH_TESTS void
   makeStages(const Options& options);
 
   void
@@ -80,7 +79,7 @@ public:
    */
   util::Signal<Procedure, bool> onComplete;
 
-NFD_PROTECTED_WITH_TESTS_ELSE_PRIVATE:
+PROTECTED_WITH_TESTS_ELSE_PRIVATE:
   std::vector<unique_ptr<Stage>> m_stages;
 
 private:

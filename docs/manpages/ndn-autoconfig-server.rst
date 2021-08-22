@@ -3,10 +3,12 @@
 ndn-autoconfig-server
 =====================
 
-Synopsis
---------
+Usage
+-----
 
-**ndn-autoconfig-server** [**-h**] [**-V**] [**-p** *PREFIX*]... *FACEURI*
+::
+
+    ndn-autoconfig-server [-h] [-p <PREFIX>] [-p <PREFIX>] ... <FACEURI>
 
 Description
 -----------

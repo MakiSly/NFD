@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -39,6 +39,7 @@ const time::milliseconds MulticastStrategy::RETX_SUPPRESSION_MAX(250);
 
 MulticastStrategy::MulticastStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder)
+  , ProcessNackTraits(this)
   , m_retxSuppression(RETX_SUPPRESSION_INITIAL,
                       RetxSuppressionExponential::DEFAULT_MULTIPLIER,
                       RETX_SUPPRESSION_MAX)
@@ -57,12 +58,12 @@ MulticastStrategy::MulticastStrategy(Forwarder& forwarder, const Name& name)
 const Name&
 MulticastStrategy::getStrategyName()
 {
-  static const auto strategyName = Name("/localhost/nfd/strategy/multicast").appendVersion(4);
+  static Name strategyName("/localhost/nfd/strategy/multicast/%FD%03");
   return strategyName;
 }
 
 void
-MulticastStrategy::afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+MulticastStrategy::afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                                         const shared_ptr<pit::Entry>& pitEntry)
 {
   const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
@@ -82,36 +83,30 @@ MulticastStrategy::afterReceiveInterest(const Interest& interest, const FaceEndp
       continue;
     }
 
+    this->sendInterest(pitEntry, outFace, interest);
     NFD_LOG_DEBUG(interest << " from=" << ingress << " pitEntry-to=" << outFace.getId());
-    auto* sentOutRecord = this->sendInterest(interest, outFace, pitEntry);
-    if (sentOutRecord && suppressResult == RetxSuppressionResult::FORWARD) {
-      m_retxSuppression.incrementIntervalForOutRecord(*sentOutRecord);
+
+    if (suppressResult == RetxSuppressionResult::FORWARD) {
+      m_retxSuppression.incrementIntervalForOutRecord(*pitEntry->getOutRecord(outFace));
     }
+  }
+
+  if (!hasPendingOutRecords(*pitEntry)) {
+    NFD_LOG_DEBUG(interest << " from=" << ingress << " noNextHop (removing pitEntry)");
+
+    lp::NackHeader nackHeader;
+    nackHeader.setReason(lp::NackReason::NO_ROUTE);
+    this->sendNack(pitEntry, ingress.face, nackHeader);
+
+    this->rejectPendingInterest(pitEntry);
   }
 }
 
 void
-MulticastStrategy::afterNewNextHop(const fib::NextHop& nextHop,
-                                   const shared_ptr<pit::Entry>& pitEntry)
+MulticastStrategy::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
+                                    const shared_ptr<pit::Entry>& pitEntry)
 {
-  // no need to check for suppression, as it is a new next hop
-
-  auto nextHopFaceId = nextHop.getFace().getId();
-  auto& interest = pitEntry->getInterest();
-
-  // try to find an incoming face record that doesn't violate scope restrictions
-  for (const auto& r : pitEntry->getInRecords()) {
-    auto& inFace = r.getFace();
-    if (isNextHopEligible(inFace, interest, nextHop, pitEntry)) {
-
-      NFD_LOG_DEBUG(interest << " from=" << inFace.getId() << " pitEntry-to=" << nextHopFaceId);
-      this->sendInterest(interest, nextHop.getFace(), pitEntry);
-
-      break; // just one eligible incoming face record is enough
-    }
-  }
-
-  // if nothing found, the interest will not be forwarded
+  this->processNack(ingress.face, nack, pitEntry);
 }
 
 } // namespace fw

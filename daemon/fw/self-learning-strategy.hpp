@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -50,7 +50,7 @@ public:
   getStrategyName();
 
   /// StrategyInfo on pit::InRecord
-  class InRecordInfo final : public StrategyInfo
+  class InRecordInfo : public StrategyInfo
   {
   public:
     static constexpr int
@@ -64,7 +64,7 @@ public:
   };
 
   /// StrategyInfo on pit::OutRecord
-  class OutRecordInfo final : public StrategyInfo
+  class OutRecordInfo : public StrategyInfo
   {
   public:
     static constexpr int
@@ -79,18 +79,19 @@ public:
 
 public: // triggers
   void
-  afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+  afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                        const shared_ptr<pit::Entry>& pitEntry) override;
 
   void
-  afterReceiveData(const Data& data, const FaceEndpoint& ingress,
-                   const shared_ptr<pit::Entry>& pitEntry) override;
+  afterReceiveData(const shared_ptr<pit::Entry>& pitEntry,
+                   const FaceEndpoint& ingress, const Data& data) override;
 
   void
-  afterReceiveNack(const lp::Nack& nack, const FaceEndpoint& ingress,
+  afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                    const shared_ptr<pit::Entry>& pitEntry) override;
 
 private: // operations
+
   /** \brief Send an Interest to all possible faces
    *
    *  This function is invoked when the forwarder has no matching FIB entries for

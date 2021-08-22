@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2020,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -44,10 +44,10 @@ public:
   /** \brief Advance steady and system clocks.
    *
    *  Clocks are advanced in increments of \p tick for \p nTicks ticks.
-   *  afterTick() is called after each tick.
+   *  After each tick, global io_service is polled to process pending I/O events.
    *
    *  Exceptions thrown during I/O events are propagated to the caller.
-   *  Clock advancement will stop in the event of an exception.
+   *  Clock advancing would stop in case of an exception.
    */
   void
   advanceClocks(time::nanoseconds tick, size_t nTicks = 1)
@@ -59,30 +59,30 @@ public:
    *
    *  Clocks are advanced in increments of \p tick for \p total time.
    *  The last increment might be shorter than \p tick.
-   *  afterTick() is called after each tick.
+   *  After each tick, global io_service is polled to process pending I/O events.
    *
    *  Exceptions thrown during I/O events are propagated to the caller.
-   *  Clock advancement will stop in the event of an exception.
+   *  Clock advancing would stop in case of an exception.
    */
   void
   advanceClocks(time::nanoseconds tick, time::nanoseconds total);
 
 protected:
-  ClockFixture();
+  explicit
+  ClockFixture(boost::asio::io_service& io);
 
 private:
   /** \brief Called by advanceClocks() after each clock advancement (tick).
-   *
-   *  The base class implementation is a no-op.
    */
   virtual void
-  afterTick()
-  {
-  }
+  pollAfterClockTick();
 
 protected:
   shared_ptr<time::UnitTestSteadyClock> m_steadyClock;
   shared_ptr<time::UnitTestSystemClock> m_systemClock;
+
+private:
+  boost::asio::io_service& m_io;
 };
 
 } // namespace tests

@@ -1,9 +1,9 @@
-NFD: Named Data Networking Forwarding Daemon
-============================================
+NFD - Named Data Networking Forwarding Daemon
+=============================================
 
-**NFD** is a network forwarder that implements and evolves together with the Named Data
-Networking (NDN) `protocol <https://named-data.net/doc/NDN-packet-spec/current/>`__.
-NFD is a core component of the `NDN Platform <https://named-data.net/codebase/platform/>`__.
+NFD is a network forwarder that implements and evolves together with the Named Data
+Networking (NDN) `protocol <https://named-data.net/doc/ndn-tlv/>`__. NFD is a core
+component of the `NDN Platform <https://named-data.net/codebase/platform/>`__.
 
 NFD Documentation
 -----------------
@@ -38,8 +38,7 @@ NFD Documentation
 
 * :doc:`manpages`
 
-Additional Documentation
-^^^^^^^^^^^^^^^^^^^^^^^^
+**Additional documentation**
 
 * `NFD Developer's Guide <https://named-data.net/publications/techreports/ndn-0021-10-nfd-developer-guide/>`__
 
@@ -51,11 +50,11 @@ Additional Documentation
 
 * `NFD Wiki <https://redmine.named-data.net/projects/nfd/wiki>`__
 
+  + `NFD Management protocol <https://redmine.named-data.net/projects/nfd/wiki/Management>`__
+  + `NFD Configuration file format <https://redmine.named-data.net/projects/nfd/wiki/ConfigFileFormat>`__
+
   The NFD Wiki contains detailed protocol specifications and
   information for building on unsupported platforms.
-
-  + `NFD Management protocol <https://redmine.named-data.net/projects/nfd/wiki/Management>`__
-  + `NFD configuration file format <https://redmine.named-data.net/projects/nfd/wiki/ConfigFileFormat>`__
 
 * `API Documentation (doxygen) <doxygen/annotated.html>`__
 

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -27,6 +27,7 @@
 #define NFD_DAEMON_FW_MULTICAST_STRATEGY_HPP
 
 #include "strategy.hpp"
+#include "process-nack-traits.hpp"
 #include "retx-suppression-exponential.hpp"
 
 namespace nfd {
@@ -35,6 +36,7 @@ namespace fw {
 /** \brief A forwarding strategy that forwards Interests to all FIB nexthops
  */
 class MulticastStrategy : public Strategy
+                        , public ProcessNackTraits<MulticastStrategy>
 {
 public:
   explicit
@@ -43,18 +45,19 @@ public:
   static const Name&
   getStrategyName();
 
-public: // triggers
   void
-  afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+  afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                        const shared_ptr<pit::Entry>& pitEntry) override;
 
   void
-  afterNewNextHop(const fib::NextHop& nextHop, const shared_ptr<pit::Entry>& pitEntry) override;
+  afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
+                   const shared_ptr<pit::Entry>& pitEntry) override;
 
 private:
+  friend ProcessNackTraits<MulticastStrategy>;
   RetxSuppressionExponential m_retxSuppression;
 
-NFD_PUBLIC_WITH_TESTS_ELSE_PRIVATE:
+PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   static const time::milliseconds RETX_SUPPRESSION_INITIAL;
   static const time::milliseconds RETX_SUPPRESSION_MAX;
 };

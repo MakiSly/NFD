@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2020,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -29,63 +29,44 @@
 #include "core/common.hpp"
 
 #include <ndn-cxx/security/key-chain.hpp>
-#include <ndn-cxx/security/signing-helpers.hpp>
 
 namespace nfd {
 namespace tests {
 
-/**
- * @brief A fixture providing an in-memory KeyChain.
- *
- * Test cases can use this fixture to create identities. Identities, certificates, and
- * saved certificates are automatically removed during test teardown.
+/** \brief A fixture providing an in-memory KeyChain.
  */
 class KeyChainFixture
 {
-protected:
-  using Certificate = ndn::security::Certificate;
-  using Identity    = ndn::security::Identity;
-  using Key         = ndn::security::Key;
-
 public:
-  /**
-   * @brief Creates and returns a certificate for a given key
-   * @param key The key for which to make a certificate
-   * @param issuer The IssuerId to include in the certificate name
-   * @param signingKey The key with which to sign the certificate; if not provided, the
-   *                   certificate will be self-signed
-   */
-  Certificate
-  makeCert(const Key& key, const std::string& issuer, const Key& signingKey = Key());
-
-  /**
-   * @brief Saves an NDN certificate to a file
-   * @return true if successful, false otherwise
+  /** \brief add identity
+   *  \return whether successful
    */
   bool
-  saveCert(const Data& cert, const std::string& filename);
+  addIdentity(const Name& identity,
+              const ndn::KeyParams& params = ndn::KeyChain::getDefaultKeyParams());
 
-  /**
-   * @brief Saves the default certificate of @p identity to a file
-   * @return true if successful, false otherwise
+  /** \brief save identity certificate to a file
+   *  \param identity identity name
+   *  \param filename file name, must be writable
+   *  \param allowAdd if true, add new identity when necessary
+   *  \return whether successful
    */
   bool
-  saveIdentityCert(const Identity& identity, const std::string& filename);
+  saveIdentityCertificate(const Name& identity, const std::string& filename, bool allowAdd = false);
 
-  /**
-   * @brief Saves the default certificate of the identity named @p identityName to a file
-   * @param identityName Name of the identity
-   * @param filename File name, must be writable
-   * @param allowCreate If true, create the identity if it does not exist
-   * @return true if successful, false otherwise
+  /** \brief retrieve identity certificate as base64 string
+   *  \param identity identity name
+   *  \param allowAdd if true, add new identity when necessary
+   *  \throw std::runtime_error identity does not exist and \p allowAdd is false
    */
-  bool
-  saveIdentityCert(const Name& identityName, const std::string& filename,
-                   bool allowCreate = false);
+  std::string
+  getIdentityCertificateBase64(const Name& identity, bool allowAdd = false);
 
 protected:
   KeyChainFixture();
 
+  /** \brief deletes saved certificate files
+   */
   ~KeyChainFixture();
 
 protected:

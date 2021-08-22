@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -34,7 +34,7 @@ namespace face {
 
 /** \brief Protocol factory for UDP over IPv4 and IPv6
  */
-class UdpFactory final : public ProtocolFactory
+class UdpFactory : public ProtocolFactory
 {
 public:
   class Error : public ProtocolFactory::Error
@@ -100,15 +100,15 @@ private:
    */
   void
   doProcessConfig(OptionalConfigSection configSection,
-                  FaceSystem::ConfigContext& context) final;
+                  FaceSystem::ConfigContext& context) override;
 
   void
   doCreateFace(const CreateFaceRequest& req,
                const FaceCreatedCallback& onCreated,
-               const FaceCreationFailedCallback& onFailure) final;
+               const FaceCreationFailedCallback& onFailure) override;
 
   std::vector<shared_ptr<const Channel>>
-  doGetChannels() const final;
+  doGetChannels() const override;
 
   /** \brief Create UDP multicast faces on \p netif if needed by \p m_mcastConfig
    *  \return list of faces (just created or already existing) on \p netif
@@ -123,7 +123,6 @@ private:
 
 private:
   bool m_wantCongestionMarking = false;
-  size_t m_defaultUnicastMtu = ndn::MAX_NDN_PACKET_SIZE;
   std::map<udp::Endpoint, shared_ptr<UdpChannel>> m_channels;
 
   struct MulticastConfig

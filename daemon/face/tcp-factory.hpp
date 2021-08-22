@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -34,7 +34,7 @@ namespace face {
 
 /** \brief Protocol factory for TCP over IPv4 and IPv6
  */
-class TcpFactory final : public ProtocolFactory
+class TcpFactory : public ProtocolFactory
 {
 public:
   static const std::string&
@@ -61,15 +61,15 @@ private:
    */
   void
   doProcessConfig(OptionalConfigSection configSection,
-                  FaceSystem::ConfigContext& context) final;
+                  FaceSystem::ConfigContext& context) override;
 
   void
   doCreateFace(const CreateFaceRequest& req,
                const FaceCreatedCallback& onCreated,
-               const FaceCreationFailedCallback& onFailure) final;
+               const FaceCreationFailedCallback& onFailure) override;
 
   std::vector<shared_ptr<const Channel>>
-  doGetChannels() const final;
+  doGetChannels() const override;
 
   ndn::nfd::FaceScope
   determineFaceScopeFromAddresses(const boost::asio::ip::address& local,
@@ -79,7 +79,7 @@ private:
   bool m_wantCongestionMarking = false;
   std::map<tcp::Endpoint, shared_ptr<TcpChannel>> m_channels;
 
-NFD_PUBLIC_WITH_TESTS_ELSE_PRIVATE:
+PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   IpAddressPredicate m_local;
 };
 

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -31,7 +31,7 @@
 namespace nfd {
 namespace fw {
 
-/** \brief Provides a common procedure for processing Nacks
+/** \brief provides a common procedure for processing Nacks
  *
  *  This procedure works as follows:
  *  1. If Nacks have been received from all upstream faces, return a Nack with least severe reason
@@ -44,7 +44,7 @@ namespace fw {
  *
  *  To use this helper, the strategy should inherit from ProcessNackTraits<MyStrategy>,
  *  and declare that specialization as a friend class.
- *  Then, invoke processNack() from the Strategy::afterReceiveNack() trigger.
+ *  Then, invoke processNack from afterReceiveNack trigger.
  */
 class ProcessNackTraitsBase : noncopyable
 {
@@ -53,7 +53,7 @@ protected:
   ~ProcessNackTraitsBase() = default;
 
   void
-  processNack(const lp::Nack& nack, const Face& inFace,
+  processNack(const Face& inFace, const lp::Nack& nack,
               const shared_ptr<pit::Entry>& pitEntry);
 
 private:
@@ -81,14 +81,14 @@ private:
   sendNackForProcessNackTraits(const shared_ptr<pit::Entry>& pitEntry, Face& outFace,
                                const lp::NackHeader& header) override
   {
-    m_strategy->sendNack(header, outFace, pitEntry);
+    m_strategy->sendNack(pitEntry, outFace, header);
   }
 
   void
   sendNacksForProcessNackTraits(const shared_ptr<pit::Entry>& pitEntry,
                                 const lp::NackHeader& header) override
   {
-    m_strategy->sendNacks(header, pitEntry);
+    m_strategy->sendNacks(pitEntry, header);
   }
 
 private:

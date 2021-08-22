@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -47,39 +47,37 @@ public:
   static Name
   getStrategyName(uint64_t version = std::numeric_limits<uint64_t>::max());
 
-  /**
-   * \brief Constructor
+  /** \brief constructor
    *
-   * \p name is recorded unchanged as getInstanceName(), and will not automatically
-   * gain a version number when instantiated without a version number.
+   *  \p name is recorded unchanged as \p getInstanceName() , and will not automatically
+   *  gain a version number when instantiated without a version number.
    */
   explicit
   DummyStrategy(Forwarder& forwarder, const Name& name = getStrategyName());
 
-  /**
-   * \brief After receive Interest trigger
+  /** \brief after receive Interest trigger
    *
-   * If interestOutFace is not null, \p interest is forwarded to that face;
-   * otherwise, rejectPendingInterest() is invoked.
+   *  If \p interestOutFace is not null, Interest is forwarded to that face and endpoint via send Interest action;
+   *  otherwise, reject pending Interest action is invoked.
    */
   void
-  afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+  afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                        const shared_ptr<pit::Entry>& pitEntry) override;
 
   void
-  afterContentStoreHit(const Data& data, const FaceEndpoint& ingress,
-                       const shared_ptr<pit::Entry>& pitEntry) override;
+  beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
+                        const FaceEndpoint& ingress, const Data& data) override;
 
   void
-  beforeSatisfyInterest(const Data& data, const FaceEndpoint& ingress,
-                        const shared_ptr<pit::Entry>& pitEntry) override;
+  afterContentStoreHit(const shared_ptr<pit::Entry>& pitEntry,
+                       const FaceEndpoint& ingress, const Data& data) override;
 
   void
-  afterReceiveData(const Data& data, const FaceEndpoint& ingress,
-                   const shared_ptr<pit::Entry>& pitEntry) override;
+  afterReceiveData(const shared_ptr<pit::Entry>& pitEntry,
+                   const FaceEndpoint& ingress, const Data& data) override;
 
   void
-  afterReceiveNack(const lp::Nack& nack, const FaceEndpoint& ingress,
+  afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                    const shared_ptr<pit::Entry>& pitEntry) override;
 
   void
@@ -99,11 +97,11 @@ protected:
   }
 
 public:
-  int afterReceiveInterest_count = 0;
-  int afterContentStoreHit_count = 0;
-  int beforeSatisfyInterest_count = 0;
-  int afterReceiveData_count = 0;
-  int afterReceiveNack_count = 0;
+  int afterReceiveInterest_count;
+  int beforeSatisfyInterest_count;
+  int afterContentStoreHit_count;
+  int afterReceiveData_count;
+  int afterReceiveNack_count;
 
   // a collection of names of PIT entries that afterNewNextHop() was called on
   std::vector<Name> afterNewNextHopCalls;

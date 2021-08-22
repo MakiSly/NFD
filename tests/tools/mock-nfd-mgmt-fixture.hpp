@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -26,7 +26,7 @@
 #ifndef NFD_TESTS_TOOLS_MOCK_NFD_MGMT_FIXTURE_HPP
 #define NFD_TESTS_TOOLS_MOCK_NFD_MGMT_FIXTURE_HPP
 
-#include "tests/io-fixture.hpp"
+#include "tests/clock-fixture.hpp"
 #include "tests/key-chain-fixture.hpp"
 #include "tests/test-common.hpp"
 
@@ -45,12 +45,13 @@ using ndn::nfd::ControlParameters;
 
 /** \brief Fixture to emulate NFD management.
  */
-class MockNfdMgmtFixture : public IoFixture, public KeyChainFixture
+class MockNfdMgmtFixture : public ClockFixture, public KeyChainFixture
 {
 protected:
   MockNfdMgmtFixture()
-    : face(m_io, m_keyChain,
-           {true, false, std::bind(&MockNfdMgmtFixture::processEventsOverride, this, _1)})
+    : ClockFixture(m_io)
+    , face(m_io, m_keyChain,
+           {true, false, bind(&MockNfdMgmtFixture::processEventsOverride, this, _1)})
   {
     face.onSendInterest.connect([this] (const Interest& interest) {
       if (processInterest) {
@@ -119,7 +120,6 @@ protected: // StatusDataset
   sendDataset(const Name& prefix, const T& payload)
   {
     BOOST_CONCEPT_ASSERT((ndn::WireEncodable<T>));
-
     this->sendDatasetReply(prefix, payload.wireEncode());
   }
 
@@ -204,6 +204,9 @@ private:
   {
     signData(data);
   }
+
+private:
+  boost::asio::io_service m_io;
 
 protected:
   ndn::util::DummyClientFace face;

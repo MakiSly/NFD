@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+/**
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -87,7 +87,7 @@ private:
 
 /** \brief drops all unsolicited Data
  */
-class DropAllUnsolicitedDataPolicy final : public UnsolicitedDataPolicy
+class DropAllUnsolicitedDataPolicy : public UnsolicitedDataPolicy
 {
 public:
   UnsolicitedDataDecision
@@ -99,7 +99,7 @@ public:
 
 /** \brief admits unsolicited Data from local faces
  */
-class AdmitLocalUnsolicitedDataPolicy final : public UnsolicitedDataPolicy
+class AdmitLocalUnsolicitedDataPolicy : public UnsolicitedDataPolicy
 {
 public:
   UnsolicitedDataDecision
@@ -111,7 +111,7 @@ public:
 
 /** \brief admits unsolicited Data from non-local faces
  */
-class AdmitNetworkUnsolicitedDataPolicy final : public UnsolicitedDataPolicy
+class AdmitNetworkUnsolicitedDataPolicy : public UnsolicitedDataPolicy
 {
 public:
   UnsolicitedDataDecision
@@ -123,7 +123,7 @@ public:
 
 /** \brief admits all unsolicited Data
  */
-class AdmitAllUnsolicitedDataPolicy final : public UnsolicitedDataPolicy
+class AdmitAllUnsolicitedDataPolicy : public UnsolicitedDataPolicy
 {
 public:
   UnsolicitedDataDecision
@@ -133,9 +133,9 @@ public:
   static const std::string POLICY_NAME;
 };
 
-/** \brief The default UnsolicitedDataPolicy
+/** \brief the default UnsolicitedDataPolicy
  */
-using DefaultUnsolicitedDataPolicy = DropAllUnsolicitedDataPolicy;
+typedef DropAllUnsolicitedDataPolicy DefaultUnsolicitedDataPolicy;
 
 } // namespace fw
 } // namespace nfd

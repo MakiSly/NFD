@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -61,12 +61,12 @@ SelfLearningStrategy::SelfLearningStrategy(Forwarder& forwarder, const Name& nam
 const Name&
 SelfLearningStrategy::getStrategyName()
 {
-  static const auto strategyName = Name("/localhost/nfd/strategy/self-learning").appendVersion(1);
+  static Name strategyName("/localhost/nfd/strategy/self-learning/%FD%01");
   return strategyName;
 }
 
 void
-SelfLearningStrategy::afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+SelfLearningStrategy::afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                                            const shared_ptr<pit::Entry>& pitEntry)
 {
   const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
@@ -80,7 +80,7 @@ SelfLearningStrategy::afterReceiveInterest(const Interest& interest, const FaceE
       NFD_LOG_DEBUG("NACK non-discovery Interest=" << interest << " from=" << ingress << " noNextHop");
       lp::NackHeader nackHeader;
       nackHeader.setReason(lp::NackReason::NO_ROUTE);
-      this->sendNack(nackHeader, ingress.face, pitEntry);
+      this->sendNack(pitEntry, ingress.face, nackHeader);
       this->rejectPendingInterest(pitEntry);
     }
     else { // multicast it if matching FIB entry exists
@@ -100,8 +100,8 @@ SelfLearningStrategy::afterReceiveInterest(const Interest& interest, const FaceE
 }
 
 void
-SelfLearningStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ingress,
-                                       const shared_ptr<pit::Entry>& pitEntry)
+SelfLearningStrategy::afterReceiveData(const shared_ptr<pit::Entry>& pitEntry,
+                                       const FaceEndpoint& ingress, const Data& data)
 {
   auto outRecord = pitEntry->getOutRecord(ingress.face);
   if (outRecord == pitEntry->out_end()) {
@@ -112,7 +112,7 @@ SelfLearningStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ing
   OutRecordInfo* outRecordInfo = outRecord->getStrategyInfo<OutRecordInfo>();
   if (outRecordInfo && outRecordInfo->isNonDiscoveryInterest) { // outgoing Interest was non-discovery
     if (!needPrefixAnn(pitEntry)) { // no need to attach a PA (common cases)
-      sendDataToAll(data, pitEntry, ingress.face);
+      sendDataToAll(pitEntry, ingress.face, data);
     }
     else { // needs a PA (to respond discovery Interest)
       asyncProcessData(pitEntry, ingress.face, data);
@@ -125,12 +125,12 @@ SelfLearningStrategy::afterReceiveData(const Data& data, const FaceEndpoint& ing
     }
     else { // Data contains no PrefixAnnouncement, upstreams do not support self-learning
     }
-    sendDataToAll(data, pitEntry, ingress.face);
+    sendDataToAll(pitEntry, ingress.face, data);
   }
 }
 
 void
-SelfLearningStrategy::afterReceiveNack(const lp::Nack& nack, const FaceEndpoint& ingress,
+SelfLearningStrategy::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                                        const shared_ptr<pit::Entry>& pitEntry)
 {
   NFD_LOG_DEBUG("Nack for " << nack.getInterest() << " from=" << ingress
@@ -138,7 +138,7 @@ SelfLearningStrategy::afterReceiveNack(const lp::Nack& nack, const FaceEndpoint&
   if (nack.getReason() == lp::NackReason::NO_ROUTE) { // remove FIB entries
     BOOST_ASSERT(this->lookupFib(*pitEntry).hasNextHops());
     NFD_LOG_DEBUG("Send NACK to all downstreams");
-    this->sendNacks(nack.getHeader(), pitEntry);
+    this->sendNacks(pitEntry, nack.getHeader());
     renewRoute(nack.getInterest().getName(), ingress.face.getId(), 0_ms);
   }
 }
@@ -149,17 +149,13 @@ SelfLearningStrategy::broadcastInterest(const Interest& interest, const Face& in
 {
   for (auto& outFace : this->getFaceTable() | boost::adaptors::reversed) {
     if ((outFace.getId() == inFace.getId() && outFace.getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) ||
-        wouldViolateScope(inFace, interest, outFace) ||
-        outFace.getScope() == ndn::nfd::FACE_SCOPE_LOCAL) {
+        wouldViolateScope(inFace, interest, outFace) || outFace.getScope() == ndn::nfd::FACE_SCOPE_LOCAL) {
       continue;
     }
-
-    NFD_LOG_DEBUG("send discovery Interest=" << interest << " from=" << inFace.getId() <<
-                  " to=" << outFace.getId());
-    auto outRecord = this->sendInterest(interest, outFace, pitEntry);
-    if (outRecord != nullptr) {
-      outRecord->insertStrategyInfo<OutRecordInfo>().first->isNonDiscoveryInterest = false;
-    }
+    this->sendInterest(pitEntry, outFace, interest);
+    pitEntry->getOutRecord(outFace)->insertStrategyInfo<OutRecordInfo>().first->isNonDiscoveryInterest = false;
+    NFD_LOG_DEBUG("send discovery Interest=" << interest << " from="
+                  << inFace.getId() << " to=" << outFace.getId());
   }
 }
 
@@ -169,17 +165,15 @@ SelfLearningStrategy::multicastInterest(const Interest& interest, const Face& in
                                         const fib::NextHopList& nexthops)
 {
   for (const auto& nexthop : nexthops) {
-    if (!isNextHopEligible(inFace, interest, nexthop, pitEntry)) {
+    Face& outFace = nexthop.getFace();
+    if ((outFace.getId() == inFace.getId() && outFace.getLinkType() != ndn::nfd::LINK_TYPE_AD_HOC) ||
+        wouldViolateScope(inFace, interest, outFace)) {
       continue;
     }
-
-    Face& outFace = nexthop.getFace();
-    NFD_LOG_DEBUG("send non-discovery Interest=" << interest << " from=" << inFace.getId() <<
-                  " to=" << outFace.getId());
-    auto outRecord = this->sendInterest(interest, outFace, pitEntry);
-    if (outRecord != nullptr) {
-      outRecord->insertStrategyInfo<OutRecordInfo>().first->isNonDiscoveryInterest = true;
-    }
+    this->sendInterest(pitEntry, outFace, interest);
+    pitEntry->getOutRecord(outFace)->insertStrategyInfo<OutRecordInfo>().first->isNonDiscoveryInterest = true;
+    NFD_LOG_DEBUG("send non-discovery Interest=" << interest << " from="
+                  << inFace.getId() << " to=" << outFace.getId());
   }
 }
 
@@ -201,7 +195,7 @@ SelfLearningStrategy::asyncProcessData(const shared_ptr<pit::Entry>& pitEntry, c
             if (pitEntry && inFace) {
               NFD_LOG_DEBUG("found PrefixAnnouncement=" << pa.getAnnouncedName());
               data.setTag(make_shared<lp::PrefixAnnouncementTag>(lp::PrefixAnnouncementHeader(pa)));
-              this->sendDataToAll(data, pitEntry, *inFace);
+              this->sendDataToAll(pitEntry, *inFace, data);
               this->setExpiryTimer(pitEntry, 0_ms);
             }
             else {

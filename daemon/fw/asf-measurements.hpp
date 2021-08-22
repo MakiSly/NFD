@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -125,7 +125,7 @@ private:
 
 /** \brief Stores strategy information about each face in this namespace
  */
-class NamespaceInfo final : public StrategyInfo
+class NamespaceInfo : public StrategyInfo
 {
 public:
   static constexpr int
@@ -192,16 +192,16 @@ public:
   AsfMeasurements(MeasurementsAccessor& measurements);
 
   FaceInfo*
-  getFaceInfo(const fib::Entry& fibEntry, const Name& interestName, FaceId faceId);
+  getFaceInfo(const fib::Entry& fibEntry, const Interest& interest, FaceId faceId);
 
   FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Name& interestName, FaceId faceId);
+  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Interest& interest, FaceId faceId);
 
   NamespaceInfo*
   getNamespaceInfo(const Name& prefix);
 
   NamespaceInfo&
-  getOrCreateNamespaceInfo(const fib::Entry& fibEntry, const Name& prefix);
+  getOrCreateNamespaceInfo(const fib::Entry& fibEntry, const Interest& interest);
 
 private:
   void

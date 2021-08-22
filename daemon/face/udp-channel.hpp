@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -37,7 +37,7 @@ namespace face {
 /**
  * \brief Class implementing UDP-based channel to create faces
  */
-class UdpChannel final : public Channel
+class UdpChannel : public Channel
 {
 public:
   /**
@@ -49,17 +49,16 @@ public:
    */
   UdpChannel(const udp::Endpoint& localEndpoint,
              time::nanoseconds idleTimeout,
-             bool wantCongestionMarking,
-             size_t defaultMtu);
+             bool wantCongestionMarking);
 
   bool
-  isListening() const final
+  isListening() const override
   {
     return m_socket.is_open();
   }
 
   size_t
-  size() const final
+  size() const override
   {
     return m_channelFaces.size();
   }

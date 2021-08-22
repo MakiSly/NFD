@@ -24,8 +24,10 @@
  */
 
 #include "face/lp-fragmenter.hpp"
+#include "face/transport.hpp"
 
 #include "tests/test-common.hpp"
+#include "tests/daemon/global-io-fixture.hpp"
 
 namespace nfd {
 namespace face {
@@ -33,7 +35,7 @@ namespace tests {
 
 using namespace nfd::tests;
 
-class LpFragmenterFixture
+class LpFragmenterFixture : public GlobalIoFixture
 {
 protected:
   LpFragmenter fragmenter{{}};
@@ -42,22 +44,23 @@ protected:
 BOOST_AUTO_TEST_SUITE(Face)
 BOOST_FIXTURE_TEST_SUITE(TestLpFragmenter, LpFragmenterFixture)
 
-BOOST_AUTO_TEST_CASE(SingleFragment)
+BOOST_AUTO_TEST_CASE(FragmentSingleFragment)
 {
-  const size_t mtu = 256;
+  size_t mtu = 256;
 
   lp::Packet packet;
   packet.add<lp::IncomingFaceIdField>(123);
 
   auto data = makeData("/test/data123");
+  BOOST_REQUIRE_EQUAL(data->wireEncode().size(), 30);
   packet.add<lp::FragmentField>({data->wireEncode().begin(), data->wireEncode().end()});
 
   bool isOk = false;
   std::vector<lp::Packet> frags;
   std::tie(isOk, frags) = fragmenter.fragmentPacket(packet, mtu);
+
   BOOST_REQUIRE(isOk);
   BOOST_REQUIRE_EQUAL(frags.size(), 1);
-
   BOOST_CHECK(frags[0].has<lp::FragmentField>());
   BOOST_CHECK_EQUAL(frags[0].get<lp::IncomingFaceIdField>(), 123);
   BOOST_CHECK(!frags[0].has<lp::FragIndexField>());
@@ -70,23 +73,25 @@ BOOST_AUTO_TEST_CASE(SingleFragment)
                                 fragBegin, fragEnd);
 }
 
-BOOST_AUTO_TEST_CASE(MultipleFragments)
+BOOST_AUTO_TEST_CASE(FragmentMultipleFragments)
 {
-  const size_t mtu = MIN_MTU;
+  size_t mtu = MIN_MTU;
 
   lp::Packet packet;
   packet.add<lp::IncomingFaceIdField>(123);
 
   auto data = makeData("/test/data123/123456789/987654321/123456789");
+  BOOST_REQUIRE_EQUAL(data->wireEncode().size(), 63);
   packet.add<lp::FragmentField>({data->wireEncode().begin(), data->wireEncode().end()});
 
   bool isOk = false;
   std::vector<lp::Packet> frags;
   std::tie(isOk, frags) = fragmenter.fragmentPacket(packet, mtu);
+
   BOOST_REQUIRE(isOk);
   BOOST_REQUIRE_EQUAL(frags.size(), 5);
 
-  ndn::Buffer reassembledPayload(data->wireEncode().size());
+  ndn::Buffer reassembledPayload(63);
 
   BOOST_CHECK(frags[0].has<lp::FragmentField>());
   BOOST_CHECK_EQUAL(frags[0].get<lp::IncomingFaceIdField>(), 123);
@@ -146,9 +151,9 @@ BOOST_AUTO_TEST_CASE(MultipleFragments)
                                 reassembledPayload.begin(), reassembledPayload.end());
 }
 
-BOOST_AUTO_TEST_CASE(MtuTooSmall)
+BOOST_AUTO_TEST_CASE(FragmentMtuTooSmall)
 {
-  const size_t mtu = 20;
+  size_t mtu = 20;
   BOOST_ASSERT(mtu < MIN_MTU);
 
   lp::Packet packet;
@@ -162,14 +167,13 @@ BOOST_AUTO_TEST_CASE(MtuTooSmall)
   BOOST_CHECK_EQUAL(isOk, false);
 }
 
-BOOST_AUTO_TEST_CASE(FragCountOverLimit)
+BOOST_AUTO_TEST_CASE(FragmentOverFragCount)
 {
   LpFragmenter::Options options;
   options.nMaxFragments = 2;
   fragmenter.setOptions(options);
 
-  const size_t mtu = 70;
-  BOOST_ASSERT(mtu >= MIN_MTU);
+  size_t mtu = 70;
 
   lp::Packet packet;
   packet.add<lp::IncomingFaceIdField>(123);

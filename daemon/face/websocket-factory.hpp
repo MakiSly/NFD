@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -34,7 +34,7 @@ namespace face {
 
 /** \brief Protocol factory for WebSocket
  */
-class WebSocketFactory final : public ProtocolFactory
+class WebSocketFactory : public ProtocolFactory
 {
 public:
   static const std::string&
@@ -62,10 +62,10 @@ private:
    */
   void
   doProcessConfig(OptionalConfigSection configSection,
-                  FaceSystem::ConfigContext& context) final;
+                  FaceSystem::ConfigContext& context) override;
 
   std::vector<shared_ptr<const Channel>>
-  doGetChannels() const final;
+  doGetChannels() const override;
 
 private:
   std::map<websocket::Endpoint, shared_ptr<WebSocketChannel>> m_channels;

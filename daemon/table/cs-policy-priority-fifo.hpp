@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -62,31 +62,31 @@ struct EntryInfo
  *  Eviction procedure exhausts the first queue before moving onto the next queue,
  *  in the order of unsolicited, stale, and fresh queue.
  */
-class PriorityFifoPolicy final : public Policy
+class PriorityFifoPolicy : public Policy
 {
 public:
   PriorityFifoPolicy();
 
-  ~PriorityFifoPolicy() final;
+  ~PriorityFifoPolicy() override;
 
 public:
   static const std::string POLICY_NAME;
 
 private:
   void
-  doAfterInsert(EntryRef i) final;
+  doAfterInsert(EntryRef i) override;
 
   void
-  doAfterRefresh(EntryRef i) final;
+  doAfterRefresh(EntryRef i) override;
 
   void
-  doBeforeErase(EntryRef i) final;
+  doBeforeErase(EntryRef i) override;
 
   void
-  doBeforeUse(EntryRef i) final;
+  doBeforeUse(EntryRef i) override;
 
   void
-  evictEntries() final;
+  evictEntries() override;
 
 private:
   /** \brief evicts one entry

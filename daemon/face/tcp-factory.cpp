@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -200,9 +200,8 @@ TcpFactory::createChannel(const tcp::Endpoint& endpoint)
   if (it != m_channels.end())
     return it->second;
 
-  auto channel = make_shared<TcpChannel>(endpoint, m_wantCongestionMarking, [this] (auto&&... args) {
-    return determineFaceScopeFromAddresses(std::forward<decltype(args)>(args)...);
-  });
+  auto channel = make_shared<TcpChannel>(endpoint, m_wantCongestionMarking,
+                                         bind(&TcpFactory::determineFaceScopeFromAddresses, this, _1, _2));
   m_channels[endpoint] = channel;
   return channel;
 }

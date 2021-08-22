@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -158,13 +158,13 @@ protected:
 
 /** \brief full enumeration implementation
  */
-class FullEnumerationImpl final : public EnumerationImpl
+class FullEnumerationImpl : public EnumerationImpl
 {
 public:
   FullEnumerationImpl(const NameTree& nt, const EntrySelector& pred);
 
   void
-  advance(Iterator& i) final;
+  advance(Iterator& i) override;
 
 private:
   EntrySelector m_pred;
@@ -175,13 +175,13 @@ private:
  *  Iterator::m_ref should be initialized to subtree root.
  *  Iterator::m_state LSB indicates whether to visit children of m_entry.
  */
-class PartialEnumerationImpl final : public EnumerationImpl
+class PartialEnumerationImpl : public EnumerationImpl
 {
 public:
   PartialEnumerationImpl(const NameTree& nt, const EntrySubTreeSelector& pred);
 
   void
-  advance(Iterator& i) final;
+  advance(Iterator& i) override;
 
 private:
   EntrySubTreeSelector m_pred;
@@ -191,14 +191,14 @@ private:
  *
  *  Iterator::m_ref should be initialized to longest prefix matched entry.
  */
-class PrefixMatchImpl final : public EnumerationImpl
+class PrefixMatchImpl : public EnumerationImpl
 {
 public:
   PrefixMatchImpl(const NameTree& nt, const EntrySelector& pred);
 
 private:
   void
-  advance(Iterator& i) final;
+  advance(Iterator& i) override;
 
 private:
   EntrySelector m_pred;

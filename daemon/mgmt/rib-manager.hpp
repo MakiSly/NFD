@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -46,7 +46,7 @@ class RibUpdate;
  * @brief Implements the RIB Management of NFD Management Protocol.
  * @sa https://redmine.named-data.net/projects/nfd/wiki/RibMgmt
  */
-class RibManager final : public ManagerBase
+class RibManager : public ManagerBase
 {
 public:
   RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
@@ -220,7 +220,7 @@ private: // management Dispatcher related
   setFaceForSelfRegistration(const Interest& request, ControlParameters& parameters);
 
   ndn::mgmt::Authorization
-  makeAuthorization(const std::string& verb) final;
+  makeAuthorization(const std::string& verb) override;
 
 private: // Face monitor
   void
@@ -229,7 +229,7 @@ private: // Face monitor
   void
   onFetchActiveFacesFailure(uint32_t code, const std::string& reason);
 
-NFD_PUBLIC_WITH_TESTS_ELSE_PRIVATE:
+PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   void
   scheduleActiveFaceFetch(const time::seconds& timeToWait);
 

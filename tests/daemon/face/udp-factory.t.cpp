@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -195,10 +195,9 @@ BOOST_AUTO_TEST_CASE(Defaults)
   parseConfig(CONFIG, false);
 
   checkChannelListEqual(factory, {"udp4://0.0.0.0:6363", "udp6://[::]:6363"});
-  for (const auto& ch : factory.getChannels()) {
-    BOOST_CHECK(ch->isListening());
-    BOOST_CHECK_EQUAL(ch->getDefaultMtu(), ndn::MAX_NDN_PACKET_SIZE);
-  }
+  auto channels = factory.getChannels();
+  BOOST_CHECK(std::all_of(channels.begin(), channels.end(),
+                          [] (const auto& ch) { return ch->isListening(); }));
 }
 
 BOOST_AUTO_TEST_CASE(DisableListen)
@@ -219,9 +218,9 @@ BOOST_AUTO_TEST_CASE(DisableListen)
   parseConfig(CONFIG, false);
 
   checkChannelListEqual(factory, {"udp4://0.0.0.0:7001", "udp6://[::]:7001"});
-  for (const auto& ch : factory.getChannels()) {
-    BOOST_CHECK(!ch->isListening());
-  }
+  auto channels = factory.getChannels();
+  BOOST_CHECK(std::none_of(channels.begin(), channels.end(),
+                           [] (const auto& ch) { return ch->isListening(); }));
 }
 
 BOOST_AUTO_TEST_CASE(DisableV4)
@@ -234,7 +233,6 @@ BOOST_AUTO_TEST_CASE(DisableV4)
         port 7001
         enable_v4 no
         enable_v6 yes
-        unicast_mtu 1452
         mcast no
       }
     }
@@ -244,9 +242,6 @@ BOOST_AUTO_TEST_CASE(DisableV4)
   parseConfig(CONFIG, false);
 
   checkChannelListEqual(factory, {"udp6://[::]:7001"});
-  for (const auto& ch : factory.getChannels()) {
-    BOOST_CHECK_EQUAL(ch->getDefaultMtu(), 1452);
-  }
 }
 
 BOOST_AUTO_TEST_CASE(DisableV6)
@@ -259,7 +254,6 @@ BOOST_AUTO_TEST_CASE(DisableV6)
         port 7001
         enable_v4 yes
         enable_v6 no
-        unicast_mtu 1452
         mcast no
       }
     }
@@ -269,9 +263,6 @@ BOOST_AUTO_TEST_CASE(DisableV6)
   parseConfig(CONFIG, false);
 
   checkChannelListEqual(factory, {"udp4://0.0.0.0:7001"});
-  for (const auto& ch : factory.getChannels()) {
-    BOOST_CHECK_EQUAL(ch->getDefaultMtu(), 1452);
-  }
 }
 
 BOOST_FIXTURE_TEST_CASE(EnableDisableMcast, UdpFactoryMcastFixture)
@@ -673,51 +664,6 @@ BOOST_AUTO_TEST_CASE(BadIdleTimeout)
 
   BOOST_CHECK_THROW(parseConfig(CONFIG2, true), ConfigFile::Error);
   BOOST_CHECK_THROW(parseConfig(CONFIG2, false), ConfigFile::Error);
-}
-
-BOOST_AUTO_TEST_CASE(BadMtu)
-{
-  // not a number
-  const std::string CONFIG1 = R"CONFIG(
-    face_system
-    {
-      udp
-      {
-        unicast_mtu hello
-      }
-    }
-  )CONFIG";
-
-  BOOST_CHECK_THROW(parseConfig(CONFIG1, true), ConfigFile::Error);
-  BOOST_CHECK_THROW(parseConfig(CONFIG1, false), ConfigFile::Error);
-
-  // underflow
-  const std::string CONFIG2 = R"CONFIG(
-    face_system
-    {
-      udp
-      {
-        unicast_mtu 63
-      }
-    }
-  )CONFIG";
-
-  BOOST_CHECK_THROW(parseConfig(CONFIG2, true), ConfigFile::Error);
-  BOOST_CHECK_THROW(parseConfig(CONFIG2, false), ConfigFile::Error);
-
-  // underflow
-  const std::string CONFIG3 = R"CONFIG(
-    face_system
-    {
-      udp
-      {
-        unicast_mtu 8801
-      }
-    }
-  )CONFIG";
-
-  BOOST_CHECK_THROW(parseConfig(CONFIG3, true), ConfigFile::Error);
-  BOOST_CHECK_THROW(parseConfig(CONFIG3, false), ConfigFile::Error);
 }
 
 BOOST_AUTO_TEST_CASE(BadMcast)

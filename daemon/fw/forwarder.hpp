@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -29,7 +29,6 @@
 #include "face-table.hpp"
 #include "forwarder-counters.hpp"
 #include "unsolicited-data-policy.hpp"
-#include "common/config-file.hpp"
 #include "face/face-endpoint.hpp"
 #include "table/fib.hpp"
 #include "table/pit.hpp"
@@ -45,10 +44,9 @@ namespace fw {
 class Strategy;
 } // namespace fw
 
-/**
- * \brief Main class of NFD's forwarding engine.
+/** \brief Main class of NFD's forwarding engine.
  *
- * The Forwarder class owns all tables and implements the forwarding pipelines.
+ *  Forwarder owns all tables and implements the forwarding pipelines.
  */
 class Forwarder
 {
@@ -56,7 +54,7 @@ public:
   explicit
   Forwarder(FaceTable& faceTable);
 
-  NFD_VIRTUAL_WITH_TESTS
+  VIRTUAL_WITH_TESTS
   ~Forwarder();
 
   const ForwarderCounters&
@@ -76,6 +74,47 @@ public:
   {
     BOOST_ASSERT(policy != nullptr);
     m_unsolicitedDataPolicy = std::move(policy);
+  }
+
+public: // forwarding entrypoints and tables
+  /** \brief start incoming Interest processing
+   *  \param ingress face on which Interest is received and endpoint of the sender
+   *  \param interest the incoming Interest, must be well-formed and created with make_shared
+   */
+  void
+  startProcessInterest(const FaceEndpoint& ingress, const Interest& interest)
+  {
+    this->onIncomingInterest(ingress, interest);
+  }
+
+  /** \brief start incoming Data processing
+   *  \param ingress face on which Data is received and endpoint of the sender
+   *  \param data the incoming Data, must be well-formed and created with make_shared
+   */
+  void
+  startProcessData(const FaceEndpoint& ingress, const Data& data)
+  {
+    this->onIncomingData(ingress, data);
+  }
+
+  /** \brief start incoming Nack processing
+   *  \param ingress face on which Nack is received and endpoint of the sender
+   *  \param nack the incoming Nack, must be well-formed
+   */
+  void
+  startProcessNack(const FaceEndpoint& ingress, const lp::Nack& nack)
+  {
+    this->onIncomingNack(ingress, nack);
+  }
+
+  /** \brief start new nexthop processing
+   *  \param prefix the prefix of the FibEntry containing the new nexthop
+   *  \param nextHop the new NextHop
+   */
+  void
+  startProcessNewNextHop(const Name& prefix, const fib::NextHop& nextHop)
+  {
+    this->onNewNextHop(prefix, nextHop);
   }
 
   NameTree&
@@ -126,87 +165,73 @@ public:
     return m_networkRegionTable;
   }
 
-  /** \brief register handler for forwarder section of NFD configuration file
-   */
-  void
-  setConfigFile(ConfigFile& configFile);
-
-NFD_PUBLIC_WITH_TESTS_ELSE_PRIVATE: // pipelines
+PUBLIC_WITH_TESTS_ELSE_PRIVATE: // pipelines
   /** \brief incoming Interest pipeline
-   *  \param interest the incoming Interest, must be well-formed and created with make_shared
-   *  \param ingress face on which \p interest was received and endpoint of the sender
    */
-  NFD_VIRTUAL_WITH_TESTS void
-  onIncomingInterest(const Interest& interest, const FaceEndpoint& ingress);
+  VIRTUAL_WITH_TESTS void
+  onIncomingInterest(const FaceEndpoint& ingress, const Interest& interest);
 
   /** \brief Interest loop pipeline
    */
-  NFD_VIRTUAL_WITH_TESTS void
-  onInterestLoop(const Interest& interest, const FaceEndpoint& ingress);
+  VIRTUAL_WITH_TESTS void
+  onInterestLoop(const FaceEndpoint& ingress, const Interest& interest);
 
   /** \brief Content Store miss pipeline
   */
-  NFD_VIRTUAL_WITH_TESTS void
-  onContentStoreMiss(const Interest& interest, const FaceEndpoint& ingress,
-                     const shared_ptr<pit::Entry>& pitEntry);
+  VIRTUAL_WITH_TESTS void
+  onContentStoreMiss(const FaceEndpoint& ingress,
+                     const shared_ptr<pit::Entry>& pitEntry, const Interest& interest);
 
   /** \brief Content Store hit pipeline
   */
-  NFD_VIRTUAL_WITH_TESTS void
-  onContentStoreHit(const Interest& interest, const FaceEndpoint& ingress,
-                    const shared_ptr<pit::Entry>& pitEntry, const Data& data);
+  VIRTUAL_WITH_TESTS void
+  onContentStoreHit(const FaceEndpoint& ingress, const shared_ptr<pit::Entry>& pitEntry,
+                    const Interest& interest, const Data& data);
 
   /** \brief outgoing Interest pipeline
-   *  \return A pointer to the out-record created or nullptr if the Interest was dropped
    */
-  NFD_VIRTUAL_WITH_TESTS pit::OutRecord*
-  onOutgoingInterest(const Interest& interest, Face& egress,
-                     const shared_ptr<pit::Entry>& pitEntry);
+  VIRTUAL_WITH_TESTS void
+  onOutgoingInterest(const shared_ptr<pit::Entry>& pitEntry,
+                     Face& egress, const Interest& interest);
 
   /** \brief Interest finalize pipeline
    */
-  NFD_VIRTUAL_WITH_TESTS void
+  VIRTUAL_WITH_TESTS void
   onInterestFinalize(const shared_ptr<pit::Entry>& pitEntry);
 
   /** \brief incoming Data pipeline
-   *  \param data the incoming Data, must be well-formed and created with make_shared
-   *  \param ingress face on which \p data was received and endpoint of the sender
    */
-  NFD_VIRTUAL_WITH_TESTS void
-  onIncomingData(const Data& data, const FaceEndpoint& ingress);
+  VIRTUAL_WITH_TESTS void
+  onIncomingData(const FaceEndpoint& ingress, const Data& data);
 
   /** \brief Data unsolicited pipeline
    */
-  NFD_VIRTUAL_WITH_TESTS void
-  onDataUnsolicited(const Data& data, const FaceEndpoint& ingress);
+  VIRTUAL_WITH_TESTS void
+  onDataUnsolicited(const FaceEndpoint& ingress, const Data& data);
 
   /** \brief outgoing Data pipeline
-   *  \return Whether the Data was transmitted (true) or dropped (false)
    */
-  NFD_VIRTUAL_WITH_TESTS bool
+  VIRTUAL_WITH_TESTS void
   onOutgoingData(const Data& data, Face& egress);
 
   /** \brief incoming Nack pipeline
-   *  \param nack the incoming Nack, must be well-formed
-   *  \param ingress face on which \p nack is received and endpoint of the sender
    */
-  NFD_VIRTUAL_WITH_TESTS void
-  onIncomingNack(const lp::Nack& nack, const FaceEndpoint& ingress);
+  VIRTUAL_WITH_TESTS void
+  onIncomingNack(const FaceEndpoint& ingress, const lp::Nack& nack);
 
   /** \brief outgoing Nack pipeline
-   *  \return Whether the Nack was transmitted (true) or dropped (false)
    */
-  NFD_VIRTUAL_WITH_TESTS bool
-  onOutgoingNack(const lp::NackHeader& nack, Face& egress,
-                 const shared_ptr<pit::Entry>& pitEntry);
+  VIRTUAL_WITH_TESTS void
+  onOutgoingNack(const shared_ptr<pit::Entry>& pitEntry,
+                 Face& egress, const lp::NackHeader& nack);
 
-  NFD_VIRTUAL_WITH_TESTS void
-  onDroppedInterest(const Interest& interest, Face& egress);
+  VIRTUAL_WITH_TESTS void
+  onDroppedInterest(const Face& egress, const Interest& interest);
 
-  NFD_VIRTUAL_WITH_TESTS void
+  VIRTUAL_WITH_TESTS void
   onNewNextHop(const Name& prefix, const fib::NextHop& nextHop);
 
-private:
+PROTECTED_WITH_TESTS_ELSE_PRIVATE:
   /** \brief set a new expiry timer (now + \p duration) on a PIT entry
    */
   void
@@ -216,24 +241,22 @@ private:
    *  \param upstream if null, insert Nonces from all out-records;
    *                  if not null, insert Nonce only on the out-records of this face
    */
-  void
-  insertDeadNonceList(pit::Entry& pitEntry, const Face* upstream);
+  VIRTUAL_WITH_TESTS void
+  insertDeadNonceList(pit::Entry& pitEntry, Face* upstream);
 
-  void
-  processConfig(const ConfigSection& configSection, bool isDryRun,
-                const std::string& filename);
-
-NFD_PUBLIC_WITH_TESTS_ELSE_PRIVATE:
-  /**
-   * \brief Configuration options from "forwarder" section
+  /** \brief call trigger (method) on the effective strategy of pitEntry
    */
-  struct Config
+#ifdef WITH_TESTS
+  virtual void
+  dispatchToStrategy(pit::Entry& pitEntry, std::function<void(fw::Strategy&)> trigger)
+#else
+  template<class Function>
+  void
+  dispatchToStrategy(pit::Entry& pitEntry, Function trigger)
+#endif
   {
-    /// Initial value of HopLimit that should be added to Interests that don't have one.
-    /// A value of zero disables the feature.
-    uint8_t defaultHopLimit = 0;
-  };
-  Config m_config;
+    trigger(m_strategyChoice.findEffectiveStrategy(pitEntry));
+  }
 
 private:
   ForwarderCounters m_counters;

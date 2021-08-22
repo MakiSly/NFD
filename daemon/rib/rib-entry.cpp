@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2019,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -33,30 +33,22 @@ namespace rib {
 
 NFD_LOG_INIT(RibEntry);
 
-static bool
-compareFaceIdAndOrigin(const Route& lhs, const Route& rhs)
-{
-  return lhs.faceId == rhs.faceId && lhs.origin == rhs.origin;
-}
-
 RibEntry::RouteList::iterator
 RibEntry::findRoute(const Route& route)
 {
-  return std::find_if(begin(), end(),
-                      [&] (const auto& r) { return compareFaceIdAndOrigin(r, route); });
+  return std::find_if(begin(), end(), bind(&compareFaceIdAndOrigin, _1, route));
 }
 
 RibEntry::RouteList::const_iterator
 RibEntry::findRoute(const Route& route) const
 {
-  return std::find_if(begin(), end(),
-                      [&] (const auto& r) { return compareFaceIdAndOrigin(r, route); });
+  return std::find_if(begin(), end(), bind(&compareFaceIdAndOrigin, _1, route));
 }
 
 std::pair<RibEntry::iterator, bool>
 RibEntry::insertRoute(const Route& route)
 {
-  auto it = findRoute(route);
+  iterator it = findRoute(route);
 
   if (it == end()) {
     if (route.flags & ndn::nfd::ROUTE_FLAG_CAPTURE) {
@@ -73,21 +65,23 @@ RibEntry::insertRoute(const Route& route)
 void
 RibEntry::eraseRoute(const Route& route)
 {
-  auto it = findRoute(route);
+  RibEntry::iterator it = findRoute(route);
   eraseRoute(it);
 }
 
 bool
 RibEntry::hasRoute(const Route& route)
 {
-  auto it = findRoute(route);
+  RibEntry::const_iterator it = findRoute(route);
+
   return it != end();
 }
 
 bool
-RibEntry::hasFaceId(uint64_t faceId) const
+RibEntry::hasFaceId(const uint64_t faceId) const
 {
-  auto it = std::find_if(begin(), end(), [faceId] (const auto& r) { return r.faceId == faceId; });
+  RibEntry::const_iterator it = std::find_if(begin(), end(), bind(&compareFaceId, _1, faceId));
+
   return it != end();
 }
 
@@ -140,14 +134,14 @@ RibEntry::addInheritedRoute(const Route& route)
 void
 RibEntry::removeInheritedRoute(const Route& route)
 {
-  m_inheritedRoutes.remove_if([id = route.faceId] (const auto& r) { return r.faceId == id; });
+  m_inheritedRoutes.remove_if(bind(&compareFaceId, _1, route.faceId));
 }
 
 RibEntry::RouteList::const_iterator
 RibEntry::findInheritedRoute(const Route& route) const
 {
   return std::find_if(m_inheritedRoutes.begin(), m_inheritedRoutes.end(),
-                      [id = route.faceId] (const auto& r) { return r.faceId == id; });
+                      bind(&compareFaceId, _1, route.faceId));
 }
 
 bool
@@ -249,7 +243,7 @@ RibEntry::getPrefixAnnouncement(time::milliseconds minExpiration,
                                 time::milliseconds maxExpiration) const
 {
   const Route* bestAnnRoute = nullptr;
-  auto entryExpiry = time::steady_clock::time_point::min();
+  auto entryExpiry = time::steady_clock::TimePoint::min();
 
   for (const Route& route : *this) {
     if (route.expires) {
@@ -261,7 +255,7 @@ RibEntry::getPrefixAnnouncement(time::milliseconds minExpiration,
       }
     }
     else {
-      entryExpiry = time::steady_clock::time_point::max();
+      entryExpiry = time::steady_clock::TimePoint::max();
     }
   }
 

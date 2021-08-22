@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -62,11 +62,11 @@ RibManager::RibManager(rib::Rib& rib, ndn::Face& face, ndn::KeyChain& keyChain,
   , m_isLocalhopEnabled(false)
 {
   registerCommandHandler<ndn::nfd::RibRegisterCommand>("register",
-    std::bind(&RibManager::registerEntry, this, _2, _3, _4, _5));
+    bind(&RibManager::registerEntry, this, _2, _3, _4, _5));
   registerCommandHandler<ndn::nfd::RibUnregisterCommand>("unregister",
-    std::bind(&RibManager::unregisterEntry, this, _2, _3, _4, _5));
+    bind(&RibManager::unregisterEntry, this, _2, _3, _4, _5));
 
-  registerStatusDatasetHandler("list", std::bind(&RibManager::listEntries, this, _1, _2, _3));
+  registerStatusDatasetHandler("list", bind(&RibManager::listEntries, this, _1, _2, _3));
 }
 
 void
@@ -104,7 +104,7 @@ RibManager::registerWithNfd()
   }
 
   NFD_LOG_INFO("Start monitoring face create/destroy events");
-  m_faceMonitor.onNotification.connect([this] (const auto& notif) { onNotification(notif); });
+  m_faceMonitor.onNotification.connect(bind(&RibManager::onNotification, this, _1));
   m_faceMonitor.start();
 
   scheduleActiveFaceFetch(ACTIVE_FACE_FETCH_INTERVAL);
@@ -248,7 +248,7 @@ RibManager::registerEntry(const Name& topPrefix, const Interest& interest,
 }
 
 void
-RibManager::unregisterEntry(const Name&, const Interest& interest,
+RibManager::unregisterEntry(const Name& topPrefix, const Interest& interest,
                             ControlParameters parameters,
                             const ndn::mgmt::CommandContinuation& done)
 {
@@ -265,7 +265,7 @@ RibManager::unregisterEntry(const Name&, const Interest& interest,
 }
 
 void
-RibManager::listEntries(const Name&, const Interest& interest,
+RibManager::listEntries(const Name& topPrefix, const Interest& interest,
                         ndn::mgmt::StatusDatasetContext& context)
 {
   auto now = time::steady_clock::now();
@@ -304,7 +304,7 @@ RibManager::setFaceForSelfRegistration(const Interest& request, ControlParameter
 }
 
 ndn::mgmt::Authorization
-RibManager::makeAuthorization(const std::string&)
+RibManager::makeAuthorization(const std::string& verb)
 {
   return [this] (const Name& prefix, const Interest& interest,
                  const ndn::mgmt::ControlParameters* params,
@@ -316,8 +316,8 @@ RibManager::makeAuthorization(const std::string&)
 
     auto& validator = prefix == LOCALHOST_TOP_PREFIX ? m_localhostValidator : m_localhopValidator;
     validator.validate(interest,
-                       [&interest, accept] (auto&&...) { extractRequester(interest, accept); },
-                       [reject] (auto&&...) { reject(ndn::mgmt::RejectReply::STATUS403); });
+                       bind([&interest, this, accept] { extractRequester(interest, accept); }),
+                       bind([reject] { reject(ndn::mgmt::RejectReply::STATUS403); }));
   };
 }
 
@@ -429,8 +429,8 @@ RibManager::fetchActiveFaces()
   NFD_LOG_DEBUG("Fetching active faces");
 
   m_nfdController.fetch<ndn::nfd::FaceDataset>(
-    std::bind(&RibManager::removeInvalidFaces, this, _1),
-    std::bind(&RibManager::onFetchActiveFacesFailure, this, _1, _2),
+    bind(&RibManager::removeInvalidFaces, this, _1),
+    bind(&RibManager::onFetchActiveFacesFailure, this, _1, _2),
     ndn::nfd::CommandOptions());
 }
 

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2021,  Regents of the University of California,
+ * Copyright (c) 2014-2020,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -37,10 +37,9 @@ namespace asf {
 
 /** \brief Adaptive SRTT-based Forwarding Strategy
  *
- *  \see Vince Lehman, Ashlesh Gawande, Rodrigo Aldecoa, Dmitri Krioukov, Beichuan Zhang,
- *       Lixia Zhang, and Lan Wang, "An Experimental Investigation of Hyperbolic Routing
- *       with a Smart Forwarding Plane in NDN", NDN Technical Report NDN-0042, 2016.
- *       https://named-data.net/publications/techreports/ndn-0042-1-asf/
+ *  \see Vince Lehman, Ashlesh Gawande, Rodrigo Aldecoa, Dmitri Krioukov, Beichuan Zhang, Lixia Zhang, and Lan Wang,
+ *       "An Experimental Investigation of Hyperbolic Routing with a Smart Forwarding Plane in NDN,"
+ *       NDN Technical Report NDN-0042, 2016. http://named-data.net/techreports.html
  */
 class AsfStrategy : public Strategy
 {
@@ -53,24 +52,24 @@ public:
 
 public: // triggers
   void
-  afterReceiveInterest(const Interest& interest, const FaceEndpoint& ingress,
+  afterReceiveInterest(const FaceEndpoint& ingress, const Interest& interest,
                        const shared_ptr<pit::Entry>& pitEntry) override;
 
   void
-  beforeSatisfyInterest(const Data& data, const FaceEndpoint& ingress,
-                        const shared_ptr<pit::Entry>& pitEntry) override;
+  beforeSatisfyInterest(const shared_ptr<pit::Entry>& pitEntry,
+                        const FaceEndpoint& ingress, const Data& data) override;
 
   void
-  afterReceiveNack(const lp::Nack& nack, const FaceEndpoint& ingress,
+  afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                    const shared_ptr<pit::Entry>& pitEntry) override;
 
 private:
   void
   processParams(const PartialName& parsed);
 
-  pit::OutRecord*
+  void
   forwardInterest(const Interest& interest, Face& outFace, const fib::Entry& fibEntry,
-                  const shared_ptr<pit::Entry>& pitEntry);
+                  const shared_ptr<pit::Entry>& pitEntry, bool wantNewNonce = false);
 
   void
   sendProbe(const Interest& interest, const FaceEndpoint& ingress, const Face& faceToUse,
